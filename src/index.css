@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 0 0% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 18%;
+
+    --primary: 217 70% 20%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 228 100% 56%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 20% 94%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 358 100% 67%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 147 54% 49%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 228 100% 56%;
+
+    --radius: 0.75rem;
+
+    --shadow-soft: 0 20px 40px rgba(0,0,0,0.12);
+    --shadow-card: 0 4px 20px rgba(0,0,0,0.08);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+}
+
+@layer components {
+  .hero-gradient {
+    background: linear-gradient(135deg, hsl(217 70% 20% / 0.92), hsl(228 100% 56% / 0.85));
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center rounded-full font-bold uppercase tracking-wider px-10 py-4 text-sm transition-all duration-300;
+    background: hsl(var(--success));
+    color: hsl(var(--success-foreground));
+  }
+
+  .btn-success:hover {
+    background: hsl(147 54% 43%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px hsl(147 54% 49% / 0.4);
+  }
+
+  .btn-secondary-outline {
+    @apply inline-flex items-center justify-center rounded-full font-bold uppercase tracking-wider px-10 py-4 text-sm transition-all duration-300 border-2;
+    border-color: hsl(var(--secondary));
+    color: hsl(var(--secondary));
+  }
+
+  .btn-secondary-outline:hover {
+    background: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .accent-underline {
+    @apply relative inline-block;
+  }
+
+  .accent-underline::after {
+    content: '';
+    @apply absolute left-0 bottom-0 h-1 rounded-full;
+    width: 80px;
+    background: hsl(var(--accent));
+  }
+
+  .card-elevated {
+    @apply rounded-2xl p-8 transition-all duration-300;
+    background: hsl(var(--card));
+    box-shadow: var(--shadow-card);
+  }
+
+  .card-elevated:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .form-input {
+    @apply w-full px-4 py-3.5 rounded-lg border text-sm transition-colors duration-200;
+    border-color: hsl(var(--border));
+    background: hsl(var(--card));
+  }
+
+  .form-input:focus {
+    @apply outline-none ring-2;
+    ring-color: hsl(var(--secondary) / 0.3);
+    border-color: hsl(var(--secondary));
+  }
+
+  .form-label {
+    @apply block font-semibold mb-1.5 text-sm;
+    color: hsl(var(--primary));
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-extrabold leading-tight;
+    color: hsl(var(--primary));
+  }
+
+  .text-accent-highlight {
+    color: hsl(var(--accent));
+  }
+
+  .text-secondary-highlight {
+    color: hsl(var(--secondary));
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(228 100% 56% / 0.4); }
+  50% { box-shadow: 0 0 0 12px hsl(228 100% 56% / 0); }
+}
+
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-float-in {
+  animation: float-in 0.6s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
