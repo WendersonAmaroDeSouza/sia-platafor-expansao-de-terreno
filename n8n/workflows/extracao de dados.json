@@ -1,0 +1,748 @@
+{
+  "name": "extracao de dados",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cb98c11e-cc04-48b4-9942-b4a9a2148ea4",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -176,
+        -752
+      ],
+      "id": "65fbf8f7-918f-44dc-aa69-289d4bb2f8b1",
+      "name": "Webhook",
+      "webhookId": "cb98c11e-cc04-48b4-9942-b4a9a2148ea4"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $('OUTPUT').item.json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3088,
+        -736
+      ],
+      "id": "77852d79-0f20-45dc-b936-7e36f3502c14",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Ug5fACVQcGXoYF07",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Ug5fACVQcGXoYF07",
+          "cachedResultName": "modulo_de_identificacao"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        -448
+      ],
+      "id": "61ff91eb-75bc-41d9-9e9d-ec6b4729f120",
+      "name": "Call 'modulo_de_identificacao'"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-flash-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-flash-latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Você é **Sia**, assistente de análise de oportunidades de terrenos da empresa **Seazone**.\n\nSua função é **avaliar se as informações de um terreno estão claras, completas e confiáveis** a partir de uma descrição enviada por um corretor.\n\nVocê receberá um **JSON contendo a descrição textual de um terreno**.\n\nSeu trabalho é **analisar essa descrição e verificar se os dados essenciais podem ser identificados de forma clara e confiável**.\n\n---\n\n# Campos que devem ser identificáveis\n\nOs seguintes campos devem estar claros na descrição:\n\n* **cidade** → cidade onde o terreno está localizado\n* **area_m2** → área total do terreno em metros quadrados\n* **valor_total** → valor total do terreno em reais\n\n---\n\n# Critérios de validação\n\nConsidere que um campo **não está claro** quando ocorrer qualquer uma das situações abaixo:\n\n1. O campo **não aparece na descrição**\n2. O valor é **ambíguo ou impreciso**\n3. O valor parece **incompleto**\n4. O valor **não pode ser inferido com segurança**\n5. O valor pode representar **mais de uma possibilidade**\n\n---\n\n# Exemplos de ambiguidade geográfica\n\n```\nCampo Grande\n```\n\nPode significar:\n\n* Campo Grande (Mato Grosso do Sul)\n* Campo Grande (bairro do Rio de Janeiro)\n\nNesse caso o campo **cidade não é considerado claro**.\n\n---\n\n# Exemplos de valores ambíguos\n\nÁrea ambígua:\n\n```\nterreno grande\nárea boa\nmais ou menos 500 metros\n```\n\nValor ambíguo:\n\n```\nna faixa de 2 milhões\nvalor a combinar\n```\n\nCidade ambígua:\n\n```\nCampo Grande\nInterior de São Paulo\n```\n\n---\n\n# Regra importante sobre números explícitos\n\nSe houver **um número claramente associado a área ou valor**, considere que a informação **existe e é válida**, mesmo que pareça baixa ou incomum.\n\nExemplos válidos:\n\n```\nvalor de 2000\npreço 150000\npor 300000\n```\n\nA função da Sia **não é validar preço de mercado**, apenas verificar se **a informação foi informada de forma clara**.\n\n---\n\n# Regra importante sobre validação de valores\n\n⚠️ **Sia NÃO deve avaliar se o valor faz sentido para o mercado imobiliário.**\n\nPortanto:\n\n**NÃO faça validações como:**\n\n* valor muito baixo\n* valor muito alto\n* preço estranho para a cidade\n* preço estranho para a área\n\nExemplos de comportamentos proibidos:\n\n❌\n\"O valor parece baixo para a cidade mencionada.\"\n\n❌\n\"O valor parece incompatível com a área.\"\n\n❌\n\"Poderia confirmar se o valor está correto?\"\n\nEssas validações **não fazem parte da tarefa da Sia**.\n\n---\n\n# Única validação numérica permitida\n\nApenas verifique se os números **não são negativos**.\n\nRegras:\n\n* **area_m2 deve ser maior que 0**\n* **valor_total deve ser maior ou igual a 0**\n\nSe um número negativo aparecer:\n\n```\nvalor -500\narea -200\n```\n\nentão o campo **não é considerado claro**.\n\n---\n\n# Regra de tolerância a erros de digitação\n\nA descrição pode conter **pequenos erros de ortografia ou digitação**.\n\nSe o nome de uma cidade puder ser **claramente inferido com alta confiança**, considere o campo **cidade como claro**.\n\nExemplos de erros aceitáveis:\n\n```\nCanpinas → Campinas\nFlorianopolis → Florianópolis\nCuritba → Curitiba\nBalneario Camburiu → Balneário Camboriú\n```\n\nNestes casos:\n\n* considere a cidade **válida**\n* **não peça confirmação ao usuário**\n* utilize a interpretação mais provável\n\n---\n\n# Quando NÃO inferir automaticamente\n\nNão corrija automaticamente quando:\n\n* o nome pode representar **mais de uma cidade**\n* a interpretação **não é clara**\n\nExemplos:\n\n```\nCampo Grande\nSanta Maria\nInterior de São Paulo\n```\n\nNestes casos o campo **cidade deve ser considerado ambíguo**.\n\n---\n\n# Sua tarefa\n\n1. Analise a descrição recebida\n2. Verifique se **cidade**, **area_m2** e **valor_total** podem ser identificados claramente\n3. Caso algum campo não esteja claro, liste quais são\n4. Gere **uma única pergunta clara para o corretor** solicitando apenas as informações necessárias\n\n---\n\n# Regras obrigatórias\n\n* Responda **EXCLUSIVAMENTE em JSON válido**\n* **Nunca escreva texto fora do JSON**\n* **Nunca invente valores**\n* **Nunca tente adivinhar informações**\n* **Não faça análises de preço ou mercado**\n* Se todos os campos estiverem claros, **não gere pergunta**\n\n---\n\n# Estrutura obrigatória da resposta\n\n```json\n{\n  \"all_fields_clear\": true,\n  \"unclear_fields\": [],\n  \"question_for_user\": null\n}\n```\n\nou\n\n```json\n{\n  \"all_fields_clear\": false,\n  \"unclear_fields\": [\"campo1\", \"campo2\"],\n  \"question_for_user\": \"pergunta para o usuário\"\n}\n```\n\n---\n\n# Regras para gerar a pergunta\n\nSe existirem campos não claros:\n\n* gere **apenas uma pergunta**\n* a pergunta deve ser **natural, direta e educada**\n* a pergunta deve solicitar **somente os dados faltantes**\n* **explique brevemente o motivo da dúvida**\n* se o usuário já tiver informado algo parcialmente, **mencione essa informação na pergunta**\n* **não peça novamente um dado sem explicar o motivo**\n* **não mencione nomes técnicos de campos**\n\nA pergunta deve ajudar o usuário a **entender exatamente o que precisa corrigir ou complementar**.\n\n---\n\n# Exemplos\n\n## Exemplo 1 — Informações completas\n\nEntrada:\n\n```json\n{\n  \"descricao\": \"Tenho um terreno em Florianópolis com 500 metros quadrados no valor de 2 milhões\"\n}\n```\n\nSaída:\n\n```json\n{\n  \"all_fields_clear\": true,\n  \"unclear_fields\": [],\n  \"question_for_user\": null\n}\n```\n\n---\n\n# Exemplo 2 — Área ausente\n\nEntrada:\n\n```json\n{\n  \"descricao\": \"Tenho um terreno em Florianópolis no valor de 2000000\"\n}\n```\n\nSaída:\n\n```json\n{\n  \"all_fields_clear\": false,\n  \"unclear_fields\": [\"area_m2\"],\n  \"question_for_user\": \"Você informou a cidade e o valor do terreno, mas não encontrei a área. Qual é a área total do terreno em metros quadrados?\"\n}\n```\n\n---\n\n# Exemplo 3 — Cidade e valor ausentes\n\nEntrada:\n\n```json\n{\n  \"descricao\": \"Tenho um terreno de 200 metros quadrados\"\n}\n```\n\nSaída:\n\n```json\n{\n  \"all_fields_clear\": false,\n  \"unclear_fields\": [\"cidade\", \"valor_total\"],\n  \"question_for_user\": \"Você mencionou a área do terreno, mas não encontrei a cidade nem o valor. Em qual cidade fica o terreno e qual é o valor total pedido?\"\n}\n```\n\n---\n\n# Exemplo 4 — Cidade ambígua\n\nEntrada:\n\n```json\n{\n  \"descricao\": \"Tenho um terreno em Campo Grande com 400 metros quadrados por 500 mil\"\n}\n```\n\nSaída:\n\n```json\n{\n  \"all_fields_clear\": false,\n  \"unclear_fields\": [\"cidade\"],\n  \"question_for_user\": \"Você mencionou a cidade Campo Grande, mas existem diferentes cidades com esse nome. Poderia informar em qual estado fica o terreno?\"\n}\n```\n\n---\n\n# Dados para validação\n\n```json\n{{ $('Webhook').item.json.body.text }}\n```\n\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        -752
+      ],
+      "id": "e354efc1-9ea1-45b9-9e28-470fa50410f3",
+      "name": "VALIDAR CAMPOS DA DESCRIÇÃO DO TERRENO",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Ex7CrQ2lfofoVljG",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-flash-latest",
+          "mode": "list",
+          "cachedResultName": "models/gemini-flash-latest"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Você é **Sia**, uma assistente de **análise de oportunidades de terrenos** da empresa **Seazone**.\n\nSua função é **interpretar a descrição de um terreno enviada por um corretor** e **extrair dados estruturados com máxima precisão**.\n\nO corretor pode escrever de forma **informal, incompleta ou desorganizada**.\nVocê deve **interpretar o texto e normalizar os dados quando possível**.\n\n---\n\n# Tarefa\n\nAnalise o texto fornecido e extraia os seguintes campos:\n\n* **cidade** → cidade onde o terreno está localizado\n* **estado** → **sigla do estado brasileiro (UF)** onde a cidade está localizada\n* **area_m2** → área total do terreno em **metros quadrados**\n* **valor_total** → valor total do terreno em **reais (podendo conter centavos)**\n\n---\n\n# Regras Gerais\n\n* A resposta deve ser **EXCLUSIVAMENTE um JSON válido**\n* **Nunca escreva explicações fora do JSON**\n* **Nunca invente informações**\n* Se um dado **não puder ser identificado com segurança**, retorne **null**\n* Sempre preencha o array **campos_faltantes** com os campos que ficaram **null**\n\n---\n\n# Estrutura Obrigatória da Resposta\n\n```json\n{\n  \"cidade\": \"string | null\",\n  \"estado\": \"string | null\",\n  \"area_m2\": \"number | null\",\n  \"valor_total\": \"number | null\",\n  \"campos_faltantes\": []\n}\n```\n\n---\n\n# Regras de Normalização\n\n## Cidade\n\nRetorne **apenas o nome da cidade**.\n\nRemova:\n\n* apelidos\n* abreviações\n* complementos\n\nExemplos:\n\n| Entrada        | Saída              |\n| -------------- | ------------------ |\n| Floripa        | Florianópolis      |\n| BC             | Balneário Camboriú |\n| Baln. Camboriú | Balneário Camboriú |\n| Sampa          | São Paulo          |\n\nSe houver **bairro + cidade**, retorne **somente a cidade**.\n\nExemplo:\n\n```\nJurerê Internacional - Floripa\n→ Florianópolis\n```\n\nTambém aceite **pequenos erros de digitação** se a cidade puder ser inferida com segurança.\n\nExemplo:\n\n```\nCanpinas → Campinas\n```\n\n---\n\n# Estado\n\nSempre que uma **cidade for identificada**, você deve **inferir o estado correspondente**.\n\nO campo **estado** deve retornar **apenas a sigla da UF**.\n\nExemplos:\n\n| Cidade             | Estado |\n| ------------------ | ------ |\n| Florianópolis      | SC     |\n| Campinas           | SP     |\n| Curitiba           | PR     |\n| Balneário Camboriú | SC     |\n| Uberlândia         | MG     |\n\nSe a cidade **não puder ser identificada com segurança**, então:\n\n```\ncidade → null\nestado → null\n```\n\ne ambos devem aparecer em `campos_faltantes`.\n\n---\n\n# Área\n\nRetorne **um número representando metros quadrados**.\n\nNormalmente será **inteiro**, mas não force arredondamento.\n\nConversões obrigatórias:\n\n| Entrada      | Saída |\n| ------------ | ----- |\n| 500m2        | 500   |\n| 500 m²       | 500   |\n| 1 hectare    | 10000 |\n| 1 ha         | 10000 |\n| 1.2 hectares | 12000 |\n| 3 mil m2     | 3000  |\n\nIgnore palavras como:\n\n* aprox\n* aproximadamente\n* cerca de\n\nSe aparecer **intervalo**, use o **valor médio aproximado**.\n\nExemplo:\n\n```\nentre 400 e 500 m2\n→ 450\n```\n\n---\n\n# Valor\n\nRetorne **um número em reais**.\n\n⚠️ **Centavos devem ser preservados quando existirem.**\n\n### Regras importantes\n\n* **Nunca arredonde valores**\n* **Nunca remova centavos**\n* Se o valor tiver centavos, **retorne exatamente o valor com casas decimais**\n* Converta vírgula decimal brasileira para ponto decimal no JSON\n\nExemplos:\n\n| Entrada    | Saída   |\n| ---------- | ------- |\n| 2000,82    | 2000.82 |\n| R$ 1500,50 | 1500.50 |\n| 999,90     | 999.90  |\n\n---\n\n### Conversões comuns\n\n| Entrada      | Saída   |\n| ------------ | ------- |\n| R$ 500 mil   | 500000  |\n| 500k         | 500000  |\n| 2 milhões    | 2000000 |\n| 2.5M         | 2500000 |\n| 3 mi         | 3000000 |\n| R$ 1.200.000 | 1200000 |\n\nRemova:\n\n* símbolos\n* texto adicional\n* separadores de milhar\n\n---\n\n# Detecção de Campos Ausentes\n\nSe um campo **não for identificado com segurança**, ele deve:\n\n* receber **null**\n* ser incluído no array **campos_faltantes**\n\nCampos possíveis em `campos_faltantes`:\n\n```\ncidade\nestado\narea_m2\nvalor_total\n```\n\nSe **cidade não puder ser identificada**, o campo **estado também deve ser null**.\n\n---\n\n# Exemplos\n\n## Exemplo 1\n\nEntrada:\n\n```\nTerreno em Floripa com 500m2 por R$ 2 milhões\n```\n\nSaída:\n\n```json\n{\n  \"cidade\": \"Florianópolis\",\n  \"estado\": \"SC\",\n  \"area_m2\": 500,\n  \"valor_total\": 2000000,\n  \"campos_faltantes\": []\n}\n```\n\n---\n\n## Exemplo 2\n\nEntrada:\n\n```\nTerreno em BC 800m2\n```\n\nSaída:\n\n```json\n{\n  \"cidade\": \"Balneário Camboriú\",\n  \"estado\": \"SC\",\n  \"area_m2\": 800,\n  \"valor_total\": null,\n  \"campos_faltantes\": [\"valor_total\"]\n}\n```\n\n---\n\n## Exemplo 3 — Valor com centavos\n\nEntrada:\n\n```\nTerreno em Campinas 200 m2 por 2000,82\n```\n\nSaída:\n\n```json\n{\n  \"cidade\": \"Campinas\",\n  \"estado\": \"SP\",\n  \"area_m2\": 200,\n  \"valor_total\": 2000.82,\n  \"campos_faltantes\": []\n}\n```\n\n---\n\n# Texto do Corretor\n\n```\n{{ $('Webhook').item.json.body.text }}\n```\n\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1280,
+        -864
+      ],
+      "id": "4f3a13fe-99bd-4a90-a947-8080f985d4fb",
+      "name": "EXTRAIR DADOS DA DESCRIÇÃO DO TERRENO",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Ex7CrQ2lfofoVljG",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a4fd96e8-4db4-4693-b1fa-75863903c657",
+              "name": "result",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        768,
+        -752
+      ],
+      "id": "57c829dd-f953-44a0-95d6-659cb25d8bb8",
+      "name": "CONVERTER RESULTADO DA VALIDACAO DE CAMPOS PARA JSON"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.content.parts[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1616,
+        -864
+      ],
+      "id": "36ec611a-6df4-4d27-8ef0-aef27b403b95",
+      "name": "CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "23726af9-6232-4963-8006-8a95c24ceab6",
+              "name": "cidade",
+              "value": "={{ $('CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON').item.json.cidade.toUpperCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "e73cbfda-b565-4681-bea6-89d92174aee2",
+              "name": "estado",
+              "value": "={{ $('CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON').item.json.estado }}",
+              "type": "string"
+            },
+            {
+              "id": "eff21c51-7e3c-4a56-a554-38bdfe12b26a",
+              "name": "area_m2",
+              "value": "={{ $('CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON').item.json.area_m2 }}",
+              "type": "number"
+            },
+            {
+              "id": "1822f52a-566c-4043-b583-4b12aa31d473",
+              "name": "valor_total",
+              "value": "={{ $('CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON').item.json.valor_total }}",
+              "type": "number"
+            },
+            {
+              "id": "79cc3f5a-df0a-4557-8cb0-9f22e8d25e37",
+              "name": "valor_por_m2",
+              "value": "={{ $('CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON').item.json.valor_total / $('CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON').item.json.area_m2 }}",
+              "type": "number"
+            },
+            {
+              "id": "20db5bdf-71e3-4fd6-9fbc-f9c7b8ab60a8",
+              "name": "prioridade",
+              "value": "={{ $('BUSCAR CIDADE ONDE A SEAZONE OPERA').item?.json.row_number > 0 ? 'ALTA' : 'BAIXA' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2032,
+        -864
+      ],
+      "id": "ec9b7452-ea0a-481f-875f-d074499f994d",
+      "name": "RESULTADO DA EXTRACAO DE DADOS DA DESCRICAO DO TERRENO"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU",
+          "mode": "list",
+          "cachedResultName": "Seazone Sia Expansão De Terrenos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1584478817,
+          "mode": "list",
+          "cachedResultName": "cidades_de_atuacao_da_seazone",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU/edit#gid=1584478817"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "CIDADE",
+              "lookupValue": "={{ $json.cidade }}"
+            },
+            {
+              "lookupColumn": "ESTADO",
+              "lookupValue": "={{ $json.estado }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1824,
+        -864
+      ],
+      "id": "fc776073-bbeb-4018-912b-2eb6b21c79c8",
+      "name": "BUSCAR CIDADE ONDE A SEAZONE OPERA",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0UcPwnpTHvquS0sH",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU",
+          "mode": "list",
+          "cachedResultName": "Seazone Sia Expansão De Terrenos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "terrenos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "CIDADE": "={{ $json.cidade }}",
+            "ESTADO": "={{ $json.estado }}",
+            "METROS QUADRADOS": "={{ $json.area_m2 }}",
+            "VALOR": "={{ $json.valor_total }}",
+            "VALOR / METROS QUADRADOS": "={{ $json.valor_por_m2 }}",
+            "PRIORIDADE": "={{ $json.prioridade }}",
+            "NOME CORRETOR": "={{ $('INPUT').item.json.body.nome }}",
+            "EMAIL CORRETOR": "={{ $('INPUT').item.json.body.email }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "CIDADE",
+              "displayName": "CIDADE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ESTADO",
+              "displayName": "ESTADO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "METROS QUADRADOS",
+              "displayName": "METROS QUADRADOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "VALOR",
+              "displayName": "VALOR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "VALOR / METROS QUADRADOS",
+              "displayName": "VALOR / METROS QUADRADOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PRIORIDADE",
+              "displayName": "PRIORIDADE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "NOME CORRETOR",
+              "displayName": "NOME CORRETOR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "EMAIL CORRETOR",
+              "displayName": "EMAIL CORRETOR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2240,
+        -864
+      ],
+      "id": "796afe23-1943-40ee-8753-aa79325e4260",
+      "name": "REGISTRAR TERRENO",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0UcPwnpTHvquS0sH",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eb6cb8aa-8d5b-47fd-ab2d-057bc1446da0",
+              "leftValue": "={{ $json.result.all_fields_clear }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "a9fb945b-8406-4176-82c5-9f1784b876c6",
+              "leftValue": "={{ $json.result.question_for_user }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        976,
+        -752
+      ],
+      "id": "60099c0d-86b2-46cd-84bb-fda9bf0cdb9d",
+      "name": "DESCRIÇÃO DO TERRENO COMPLETA?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU",
+          "mode": "list",
+          "cachedResultName": "Seazone Sia Expansão De Terrenos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1438411484,
+          "mode": "list",
+          "cachedResultName": "logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18uRJxXWtMCnMrdXgqGjmgVQkDM1H7jO2SKBw9FAMOnU/edit#gid=1438411484"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "INPUT USUÁRIO": "={{ $('Webhook').item.json.body }}",
+            "OUTPUT SIA": "={{ \n  $json.output\n}}",
+            "TIMESTAMP": "={{ new Date().toISOString() }}",
+            "PRIORIDADE ATRIBUIDA AO TERRENO": "={{ \n  $if(\n    $('RESULTADO DA EXTRACAO DE DADOS DA DESCRICAO DO TERRENO').isExecuted,\n    $('RESULTADO DA EXTRACAO DE DADOS DA DESCRICAO DO TERRENO').item.json.prioridade,\n  'NA'\n  )\n}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "INPUT USUÁRIO",
+              "displayName": "INPUT USUÁRIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "OUTPUT SIA",
+              "displayName": "OUTPUT SIA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "PRIORIDADE ATRIBUIDA AO TERRENO",
+              "displayName": "PRIORIDADE ATRIBUIDA AO TERRENO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TIMESTAMP",
+              "displayName": "TIMESTAMP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2784,
+        -736
+      ],
+      "id": "46f73e50-9095-40bd-9167-5a7a799d484a",
+      "name": "REGISTRAR LOG",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "0UcPwnpTHvquS0sH",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bb46e5e9-bd87-4453-b554-d63c6a38fc34",
+              "name": "output",
+              "value": "={{ \n  $if(\n    $('RESULTADO DA EXTRACAO DE DADOS DA DESCRICAO DO TERRENO').isExecuted,\n    $('RESULTADO DA EXTRACAO DE DADOS DA DESCRICAO DO TERRENO').item.json,\n    $('CONVERTER RESULTADO DA VALIDACAO DE CAMPOS PARA JSON').item.json.result\n  )\n}}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2560,
+        -736
+      ],
+      "id": "9f21159d-156e-4526-963d-8eb6a589ffb6",
+      "name": "OUTPUT"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3c2644d6-c7bf-4634-9fee-c20ccce4b0a5",
+              "name": "body.email",
+              "value": "={{ $json.body.email.toUpperCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "4e835816-7472-481b-a27d-0ce4a3cf388d",
+              "name": "body.nome",
+              "value": "={{ $json.body.nome.toUpperCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "b88aabda-3e5c-44d5-a962-2d6c0e3d322e",
+              "name": "body.text",
+              "value": "={{ $json.body.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        -752
+      ],
+      "id": "b12191b1-cc71-47d6-8ab9-b0cb9ca17139",
+      "name": "INPUT"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "INPUT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'modulo_de_identificacao'": {
+      "main": [
+        [
+          {
+            "node": "VALIDAR CAMPOS DA DESCRIÇÃO DO TERRENO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VALIDAR CAMPOS DA DESCRIÇÃO DO TERRENO": {
+      "main": [
+        [
+          {
+            "node": "CONVERTER RESULTADO DA VALIDACAO DE CAMPOS PARA JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EXTRAIR DADOS DA DESCRIÇÃO DO TERRENO": {
+      "main": [
+        [
+          {
+            "node": "CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONVERTER RESULTADO DA VALIDACAO DE CAMPOS PARA JSON": {
+      "main": [
+        [
+          {
+            "node": "DESCRIÇÃO DO TERRENO COMPLETA?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONVERTER RESULTADO DA EXTRACAO DE DADOS PARA JSON": {
+      "main": [
+        [
+          {
+            "node": "BUSCAR CIDADE ONDE A SEAZONE OPERA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESULTADO DA EXTRACAO DE DADOS DA DESCRICAO DO TERRENO": {
+      "main": [
+        [
+          {
+            "node": "REGISTRAR TERRENO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUSCAR CIDADE ONDE A SEAZONE OPERA": {
+      "main": [
+        [
+          {
+            "node": "RESULTADO DA EXTRACAO DE DADOS DA DESCRICAO DO TERRENO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REGISTRAR TERRENO": {
+      "main": [
+        [
+          {
+            "node": "OUTPUT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DESCRIÇÃO DO TERRENO COMPLETA?": {
+      "main": [
+        [
+          {
+            "node": "EXTRAIR DADOS DA DESCRIÇÃO DO TERRENO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OUTPUT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REGISTRAR LOG": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OUTPUT": {
+      "main": [
+        [
+          {
+            "node": "REGISTRAR LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INPUT": {
+      "main": [
+        [
+          {
+            "node": "Call 'modulo_de_identificacao'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f1bd296b-958e-4e22-a847-0e39e9a70aa4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bd4f821d851fcb7f7f491df20278d975b1d51b38ba5912e4bbf6cb5cd7337f9b"
+  },
+  "id": "CWi3Ztok6Z20vFl8",
+  "tags": []
+}
